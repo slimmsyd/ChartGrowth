@@ -4,6 +4,7 @@ import { AggregatedTradeData } from '../utils/aggregationUtils';
 import BarChart from './BarChart';
 import TreeMapChart from './TreeMapChart';
 import ChatPopup from './ChatPopup';
+import TradesTable from './TradesTable';
 
 interface DashboardUIProps {
   trades: StockTradeData[];
@@ -402,93 +403,7 @@ const DashboardUI: React.FC<DashboardUIProps> = ({
       {/* Data Table */}
       {!isLoading && !error && trades.length > 0 && (
         <div className="data-table-section">
-          <div className="data-table" style={{
-            backgroundColor: '#171B26',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.05)',
-            overflow: 'hidden'
-          }}>
-            <div className="table-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#E5E7EB' }}>Recent Trades</h3>
-              <div style={{ fontSize: '13px', color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 12H15M9 16H15" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Showing {Math.min(10, trades.length)} of {trades.length}
-              </div>
-            </div>
-            
-            <div className="table-content" style={{ maxHeight: '400px', overflow: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
-                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>ID</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Date & Time</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Symbol</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Trade Size</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trades.slice(0, 10).map((trade) => (
-                    <tr key={trade.id} style={{ 
-                      borderBottom: '1px solid rgba(255,255,255,0.05)', 
-                      transition: 'background-color 0.2s ease'
-                    }}>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', color: '#9CA3AF' }}>{trade.id}</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', color: '#E5E7EB' }}>{new Date(trade.timeStamp).toLocaleString()}</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 500, color: '#E5E7EB' }}>
-                        <div style={{ 
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          backgroundColor: 'rgba(255,255,255,0.05)', 
-                          padding: '3px 8px', 
-                          borderRadius: '4px',
-                          fontWeight: 500
-                        }}>
-                          {trade.symbol}
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', textAlign: 'right', color: '#E5E7EB' }}>{trade.tradeSize.toLocaleString()}</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', textAlign: 'right', fontWeight: 500, color: '#10B981' }}>${trade.price.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div style={{ 
-              padding: '10px 16px', 
-              borderTop: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              justifyContent: 'center'
-            }}>
-              <button style={{
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                fontSize: '13px',
-                color: '#9CA3AF',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M19 9L12 16L5 9" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                View more
-              </button>
-            </div>
-          </div>
+          <TradesTable trades={trades} pageSize={10} />
         </div>
       )}
     </div>

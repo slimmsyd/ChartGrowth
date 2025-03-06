@@ -501,20 +501,23 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
           d3.select(this)
             .transition()
             .duration(200)
-            .attr('r', function(d, i) {
+            .attr('r', function(d: unknown, i: number) {
+              // Cast the unknown datum to our expected type
+              const datum = d as CumulativeTradeData;
+              
               // Maintain the same sizing logic as in the initial rendering
               if (i === 0 || i === cumulativeData.length - 1) return 6;
               
               if (i > 0 && i < cumulativeData.length - 1) {
                 const prev = cumulativeData[i-1].cumulativeTotal;
-                const curr = d.cumulativeTotal;
+                const curr = datum.cumulativeTotal;
                 const next = cumulativeData[i+1].cumulativeTotal;
                 
                 if (curr > prev && curr > next) return 6;
               }
               
               if (i > 0) {
-                const change = d.cumulativeTotal - cumulativeData[i-1].cumulativeTotal;
+                const change = datum.cumulativeTotal - cumulativeData[i-1].cumulativeTotal;
                 const percentChange = change / cumulativeData[i-1].cumulativeTotal;
                 if (percentChange > 0.1) return 6;
               }
