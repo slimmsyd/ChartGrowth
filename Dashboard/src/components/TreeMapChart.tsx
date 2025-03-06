@@ -81,7 +81,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({
     const cell = svg.selectAll('g')
       .data(root.leaves())
       .join('g')
-      .attr('transform', d => `translate(${d.x0},${d.y0})`);
+      .attr('transform', d => `translate(${d.x0},${d.y0 })`);
     
     // Add rectangles
     cell.append('rect')
