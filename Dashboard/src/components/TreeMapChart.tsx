@@ -1,19 +1,35 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
-import { AggregatedTradeData, aggregateTrades } from '../utils/aggregationUtils';
-import { StockTradeData } from '../models/StockTradeData';
+import { aggregateTrades } from '../utils/aggregationUtils';
+import { TreeMapChartProps } from '../models/TreeMapChartProps';
 
-interface TreeMapChartProps {
-  data: AggregatedTradeData[];
-  width: number;
-  height: number;
-  rawTrades?: StockTradeData[]; // Optional raw trades data
-  aggregation: 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly';
-  minSize: number;
-  maxSize: number;
-  minPrice: number;
-  
-}
+/**
+ * TreeMapChart Component
+ * 
+ * A React component that renders a D3-based treemap visualization for stock trade data.
+ * The treemap provides a hierarchical view of trade data, showing the relative sizes 
+ * and distributions of trades across different stocks and time periods.
+ * 
+ * Features:
+ * - Hierarchical visualization of trade data grouped by stock symbols
+ * - Area of each rectangle proportional to trade size/volume
+ * - Color coding to represent different metrics (e.g., price, trade frequency)
+ * - Interactive tooltips showing detailed trade information
+ * - Automatic quarterly aggregation of trade data
+ * - Responsive design that adapts to container dimensions
+ * 
+ * Props:
+ * - data: Array of aggregated trade data containing period and trade metrics
+ * - width: Width of the chart container in pixels
+ * - height: Height of the chart container in pixels
+ * - rawTrades: Optional array of raw trade data for reaggregation
+ * 
+ * The component uses D3.js for rendering and handles data transformations
+ * to create a hierarchical structure suitable for treemap visualization.
+ * It automatically aggregates data to quarterly periods for optimal visualization
+ * and comparison across time periods.
+ */
+
 
 // Define the TreeMapNode type to fix TypeScript errors
 interface TreeMapNode extends d3.HierarchyNode<any> {

@@ -356,6 +356,10 @@ const DashboardUI: React.FC<DashboardUIProps> = ({
                     width={1150} 
                     height={500} 
                     rawTrades={trades} 
+                    aggregation={aggregation}
+                    minSize={0}
+                    maxSize={1000}
+                    minPrice={0}
                   />
                 )}
               </div>

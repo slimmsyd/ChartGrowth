@@ -1,269 +1,43 @@
-import { useCallback, useState, useEffect } from 'react'
-import './App.css'
-import { StockTradeData } from './models/StockTradeData'
-
-// Import utility functions for:
-// - aggregateTrades: Groups trade data by time periods (daily/weekly/monthly/quarterly)
-// - AggregatedTradeData: Type definition for grouped trade data
-// - formatPeriodForDisplay: Formats time periods into human readable strings
-import { aggregateTrades, AggregatedTradeData } from './utils/aggregationUtils'
-import DashboardUI from './components/DashboardUI'
-
-type Aggregation = "Daily" | "Weekly" | "Monthly" | "Quarterly"
-type Chart = "BarChart" | "TreeMap"
-type TimeRange = "1D" | "1W" | "1M" | "3M" | "6M" | "1Y" | "YTD" | "Custom"
+import { useState, useEffect } from 'react';
 
 
-/**
- * IMPORTANT: Before running the application, make sure to:
- * 1. Navigate to the API project directory
- * 2. Run `dotnet run` to start the API server
- * 3. The API should be accessible at http://localhost:5072
- * 
- * Without the API running, the trade data fetching functionality will not work.
- * If you encounter connection errors, verify that:
- * - The API is running
- * - The port number matches (5072)
- * - You have the correct permissions
- * - No firewall is blocking the connection
- */
+interface ControlsPanelProps {
+    timeRange: string;
+    setTimeRange: (range: string) => void;
+    startDate: string;
+    setStartDate: (date: string) => void;
+    minSize: number;
+    setMinSize: (size: number) => void;
+    formatMinSize: (size: number) => string;
+    handleMinSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isMobile: boolean;
+    setIsMobile: (isMobile: boolean) => void;
+    isMinSizeFocused: boolean;
+    setIsMinSizeFocused: (isMinSizeFocused: boolean) => void;
+    paramsChanged: boolean;
+    setParamsChanged: (paramsChanged: boolean) => void;
+    lastFetchParams: { timeRange: string; minSize: number };
+    setLastFetchParams: (params: { timeRange: string; minSize: number }) => void;
+}
+
+export default function ControlsPanel({ timeRange, setTimeRange, startDate, setStartDate, minSize, setMinSize, formatMinSize, handleMinSizeChange, isMobile, setIsMobile }: ControlsPanelProps) {
+    const [minSizeDisplay, setMinSizeDisplay] = useState('0');
 
 
-
-/**
- * Fetches stock trade data from the API based on specified parameters
- * @param startTimestamp - ISO string representing the start date for filtering trades
- * @param minQuoteSize - Minimum trade size to filter results (in thousands)
- * @returns Promise containing an array of StockTradeData objects
- */
-const fetchTrades = async (startTimestamp: string, minQuoteSize: number): Promise<StockTradeData[]> => {
-  try {
-    // Construct the API URL with query parameters
-    const apiUrl = `http://localhost:5072/api/trades?startTimestamp=${startTimestamp}&minQuoteSize=${minQuoteSize}`;
+    useEffect(() => {
+        const handleResize = () => {
+          setIsMobile(window.innerWidth <= 768);
+        };
     
-    console.log(`Fetching trades from: ${apiUrl}`);
-    
-    // Make the network request to fetch trade data
-    const response = await fetch(apiUrl);
-    
-    // Check if the response was successful
-    if (!response.ok) {
-      throw new Error(`API request failed with status: ${response.status}`);
-    }
-    
-    // Parse the JSON response
-    const data = await response.json();
-    console.log("Logging the data that we have", data)
-    
-    // Validate that the data matches the StockTradeData interface
-    const validatedData: StockTradeData[] = data.map((item: any) => {
-      // Log the raw item to see the actual field names
-      console.log("Raw API item:", item);
-      
-      return {
-        id: item.id,
-        timeStamp: item.timestamp || item.Timestamp || item.timeStamp, // Try different casings
-        tradeSize: item.tradeSize,
-        price: item.price,
-        symbol: item.symbol
-      };
-    });
+        window.addEventListener('resize', handleResize);
+        return () => {
+          window.removeEventListener('resize', handleResize);
+        };
+      }, []);
 
-    
-    console.log(`Fetched ${validatedData.length} trades successfully`);
-    
-    // Return the parsed and validated trade data that matches the StockTradeData interface
-    // (id, timeStamp, tradeSize, price, symbol)
-    return validatedData;
-  } catch (error) {
-    // Log any errors that occur during the fetch operation
-    console.error('Error fetching trade data:', error);
-    
-    // Return an empty array in case of error
-    return [];
-  }
-};
-
-function App() {
-  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear() - 1, new Date().getMonth(), new Date().getDay()).toISOString().split('T')[0])
-  const [timeRange, setTimeRange] = useState<TimeRange>("1M")
-  const [minSize, setMinSize] = useState(0)
-  const [minSizeDisplay, setMinSizeDisplay] = useState("0")
-  const [aggregation, setAggregation] = useState<Aggregation>('Daily')
-  const [chart, setChart] = useState<Chart>('BarChart')
-  const [trades, setTrades] = useState<StockTradeData[]>([])
-  const [aggregatedTrades, setAggregatedTrades] = useState<AggregatedTradeData[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
-  const [isMinSizeFocused, setIsMinSizeFocused] = useState(false)
-  const [paramsChanged, setParamsChanged] = useState(false)
-  const [lastFetchParams, setLastFetchParams] = useState({ timeRange: "1M", minSize: 0 })
-
-  // Handle window resize for responsive design
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  // Effect to update start date based on selected time range
-  useEffect(() => {
-    const now = new Date();
-    let newStartDate: Date;
-    
-    switch (timeRange) {
-      case "1D":
-        newStartDate = new Date(now);
-        newStartDate.setDate(now.getDate() - 1);
-        break;
-      case "1W":
-        newStartDate = new Date(now);
-        newStartDate.setDate(now.getDate() - 7);
-        break;
-      case "1M":
-        newStartDate = new Date(now);
-        newStartDate.setMonth(now.getMonth() - 1);
-        break;
-      case "3M":
-        newStartDate = new Date(now);
-        newStartDate.setMonth(now.getMonth() - 3);
-        break;
-      case "6M":
-        newStartDate = new Date(now);
-        newStartDate.setMonth(now.getMonth() - 6);
-        break;
-      case "1Y":
-        newStartDate = new Date(now);
-        newStartDate.setFullYear(now.getFullYear() - 1);
-        break;
-      case "YTD":
-        newStartDate = new Date(now.getFullYear(), 0, 1); // January 1st of current year
-        break;
-      case "Custom":
-        // Don't change the date for custom selection
-        return;
-      default:
-        newStartDate = new Date(now);
-        newStartDate.setMonth(now.getMonth() - 1);
-    }
-    
-    setStartDate(newStartDate.toISOString().split('T')[0]);
-    
-    // Check if timeRange has changed since last fetch
-    if (timeRange !== lastFetchParams.timeRange) {
-      setParamsChanged(true);
-    }
-  }, [timeRange, lastFetchParams.timeRange]);
-
-  // Format min size for display (simple share count)
-  const formatMinSize = (value: number): string => {
-    // For share counts, we just return the number as a string
-    return value.toString();
-  };
-
-  // Parse displayed min size back to number
-  const parseMinSize = (displayValue: string): number => {
-    // For share counts, we just parse the string to a number
-    return parseInt(displayValue, 10) || 0;
-  };
-
-  // Handle min size input change
-  const handleMinSizeChange = (value: string) => {
-    const parsedValue = parseMinSize(value);
-    setMinSize(parsedValue);
-    setMinSizeDisplay(value);
-    
-    // Check if minSize has changed since last fetch
-    if (parsedValue !== lastFetchParams.minSize) {
-      setParamsChanged(true);
-    }
-  };
-
-  // Handle time range change
-  const handleTimeRangeChange = (range: TimeRange) => {
-    setTimeRange(range);
-    
-    // Check if timeRange has changed since last fetch is handled in the useEffect
-  };
-
-  // Effect to reaggregate data when trades or aggregation type changes
-  useEffect(() => {
-    if (trades.length > 0) {
-      const newAggregatedTrades = aggregateTrades(trades, aggregation);
-      setAggregatedTrades(newAggregatedTrades);
-      // console.log(`Aggregated ${trades.length} trades into ${newAggregatedTrades.length} ${aggregation} periods`);
-    } else {
-      setAggregatedTrades([]);
-    }
-  }, [trades, aggregation]);
-
-  const handleFetchTrades = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Convert the startDate string to a Date object and then to an ISO string
-      const startTimestamp = new Date(startDate).toISOString();
-      // console.log('Fetching trades with parameters:', { startTimestamp, minQuoteSize: minSize });
-      
-      const fetchedTrades = await fetchTrades(startTimestamp, minSize);
-
-      
-      if (fetchedTrades.length === 0) {
-        setError('No trades found for the specified criteria');
-      } else {
-        setTrades(fetchedTrades);
+    return (
+        <>
         
-        // Log the first trade to verify all required fields are present
-        if (fetchedTrades.length > 0) {
-          const sampleTrade = fetchedTrades[0];
-          console.log('Sample trade data:', {
-            id: sampleTrade.id,
-            timeStamp: sampleTrade.timeStamp,
-            tradeSize: sampleTrade.tradeSize,
-            price: sampleTrade.price,
-            symbol: sampleTrade.symbol
-          });
-        }
-      }
-
-    } catch (err) {
-      setError('Failed to fetch trades');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-      // Update last fetch parameters and reset paramsChanged flag
-      setLastFetchParams({ timeRange, minSize });
-      setParamsChanged(false);
-    }
-
-    // TODO #2 : After fetching trades, add any aggregation logic needed here to support the options below.
-  }, [startDate, minSize])
-
-
-  // TODO #3 : If the user changes the aggregation or chart type, you should update the display without making a call to get new data
-
-  return (
-    <div className="App">
-      <div className='dashboard-container' style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'minmax(250px, 300px) 1fr',
-        gridTemplateRows: isMobile ? 'auto 1fr' : 'auto',
-        gap: '20px',
-        height: isMobile ? 'auto' : '100vh',
-        maxHeight: isMobile ? 'none' : '100vh',
-        overflow: isMobile ? 'auto' : 'hidden',
-        padding: '16px',
-        boxSizing: 'border-box',
-        backgroundColor: '#111827',
-        color: '#E5E7EB'
-      }}>
         <div className='controls-panel' style={{
           backgroundColor: '#1F2937',
           borderRadius: '8px',
@@ -888,24 +662,6 @@ function App() {
           <div style={{ marginTop: 'auto', padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '12px', color: '#9CA3AF', textAlign: 'center' }}>
             Trade Analytics Dashboard v1.0
           </div>
-        </div>
-
-
-        
-        {/* Main Content Area */}
-        <div style={{ flex: 1, padding: '16px 20px', overflow: 'auto' }}>
-          <DashboardUI 
-            trades={trades}
-            aggregatedTrades={aggregatedTrades}
-            aggregation={aggregation}
-            chart={chart}
-            isLoading={isLoading}
-            error={error}
-          />
-        </div>
-      </div>
-    </div>
-  )
+        </div></>
+    )
 }
-
-export default App

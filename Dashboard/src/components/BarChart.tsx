@@ -1,12 +1,30 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { AggregatedTradeData } from '../utils/aggregationUtils';
+import { BarChartProps } from '../models/BarChartProps';
 
-interface BarChartProps {
-  data: AggregatedTradeData[];
-  width: number;
-  height: number;
-}
+/**
+ * BarChart Component
+ * 
+ * A React component that renders a D3-based bar chart visualization for trade data.
+ * The chart displays both bar chart of trade sizes and an optional cumulative line chart.
+ * 
+ * Features:
+ * - Interactive bar chart showing trade sizes over time periods
+ * - Optional cumulative line chart overlay
+ * - Zoom and pan capabilities for data exploration
+ * - Responsive design that adapts to container dimensions
+ * - Tooltip with detailed information on hover
+ * 
+ * Props:
+ * - data: Array of AggregatedTradeData containing period and trade size information
+ * - width: Width of the chart container in pixels
+ * - height: Height of the chart container in pixels
+ * 
+ * The component uses D3.js for rendering and handles data updates, zooming,
+ * and window resizing efficiently through React hooks.
+ */
+
 
 // Extended interface for data with cumulative totals
 interface CumulativeTradeData extends AggregatedTradeData {
@@ -17,6 +35,22 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [showCumulativeLine, setShowCumulativeLine] = useState<boolean>(true);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
+  const [chartWidth, setChartWidth] = useState<number>(width);
+  
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setChartWidth(Math.max(window.innerWidth - 300, 1150));
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Update chart width when prop changes
+  useEffect(() => {
+    setChartWidth(width);
+  }, [width]);
 
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
@@ -24,15 +58,15 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // Set margins
-    const margin = { top: 20, right: 30, bottom: 60, left: 80 };
-    const innerWidth = width - margin.left - margin.right;
+    // Set margins with increased right margin for more space
+    const margin = { top: 20, right: 100, bottom: 60, left: 80 };
+    const innerWidth = chartWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     // Create SVG
     const svg = d3
       .select(svgRef.current)
-      .attr('width', width)
+      .attr('width', chartWidth)
       .attr('height', height);
       
     // Create a clip path to ensure elements don't render outside the chart area
@@ -213,7 +247,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
       // Add right y-axis label
       chartGroup.append('text')
         .attr('transform', 'rotate(90)')
-        .attr('y', -width + margin.right)
+        .attr('y', -chartWidth + margin.right)
         .attr('x', innerHeight / 2)
         .attr('dy', '1em')
         .style('text-anchor', 'middle')
@@ -297,7 +331,9 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
               <div>Trades: ${d.tradeCount.toLocaleString()}</div>
               <div>Avg Price: $${d.averagePrice.toFixed(2)}</div>
             </div>
-          `);
+          `)
+          .style('top', (event.pageY - 10) + 'px')
+          .style('left', (event.pageX + 10) + 'px');
       })
       .on('mousemove', function(event) {
         tooltip
@@ -322,16 +358,63 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         .y(d => yLine(d.cumulativeTotal))
         .curve(d3.curveMonotoneX);
         
-      // Add the line path
+      // Add a drop shadow filter for the line
+      svg.append("defs")
+        .append("filter")
+        .attr("id", "glow")
+        .append("feGaussianBlur")
+        .attr("stdDeviation", "2.5")
+        .attr("result", "coloredBlur");
+      
+      const filter = svg.select("#glow")
+        .append("feMerge");
+      
+      filter.append("feMergeNode")
+        .attr("in", "coloredBlur");
+      filter.append("feMergeNode")
+        .attr("in", "SourceGraphic");
+        
+      // Add the line path with enhanced styling
       const path = clippedGroup.append('path')
         .datum(cumulativeData)
         .attr('class', 'cumulative-line')
         .attr('fill', 'none')
         .attr('stroke', '#10B981')
-        .attr('stroke-width', 3)
+        .attr('stroke-width', 3.5)
+        .attr('stroke-linecap', 'round')
+        .attr('stroke-linejoin', 'round')
+        .attr('filter', 'url(#glow)')
         .attr('d', line);
+      
+      // Add animated dash effect for visibility
+      const totalLength = path.node()?.getTotalLength() || 0;
+      path.attr("stroke-dasharray", totalLength)
+        .attr("stroke-dashoffset", totalLength)
+        .transition()
+        .duration(1000)
+        .attr("stroke-dashoffset", 0);
         
-      // Add line points
+      // Add gradient to make the line more visually appealing
+      const gradient = svg.append("defs")
+        .append("linearGradient")
+        .attr("id", "line-gradient")
+        .attr("gradientUnits", "userSpaceOnUse")
+        .attr("x1", 0)
+        .attr("y1", innerHeight)
+        .attr("x2", 0)
+        .attr("y2", 0);
+        
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "#059669");
+        
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "#10B981");
+      
+      path.attr('stroke', 'url(#line-gradient)');
+        
+      // Add line points with improved visibility
       const points = clippedGroup.selectAll<SVGCircleElement, CumulativeTradeData>('.line-point')
         .data(cumulativeData)
         .enter()
@@ -339,23 +422,73 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         .attr('class', 'line-point')
         .attr('cx', (d) => (x(d.period) as number) + x.bandwidth() / 2)
         .attr('cy', (d) => yLine(d.cumulativeTotal))
-        .attr('r', 5)
+        .attr('r', 0) // Start with radius 0 for animation
         .attr('fill', '#10B981')
         .attr('stroke', '#064E3B')
         .attr('stroke-width', 2)
         .style('cursor', 'pointer')
+        .style('filter', 'url(#glow)')
+        .transition() // Animate the points appearing
+        .delay((_, i) => i * (1000 / cumulativeData.length))
+        .duration(300)
+        .attr('r', (d, i) => {
+          // Make key points (first, last, and local maxima) larger
+          if (i === 0 || i === cumulativeData.length - 1) return 6;
+          
+          // Check if this is a local maximum
+          if (i > 0 && i < cumulativeData.length - 1) {
+            const prev = cumulativeData[i-1].cumulativeTotal;
+            const curr = d.cumulativeTotal;
+            const next = cumulativeData[i+1].cumulativeTotal;
+            
+            if (curr > prev && curr > next) return 6;
+          }
+          
+          // For points with significant jumps
+          if (i > 0) {
+            const change = d.cumulativeTotal - cumulativeData[i-1].cumulativeTotal;
+            const percentChange = change / cumulativeData[i-1].cumulativeTotal;
+            if (percentChange > 0.1) return 6; // 10% jump
+          }
+          
+          // Reduce the number of visible points for better readability
+          // Show fewer points when there are many data points
+          if (cumulativeData.length > 50) {
+            // For large datasets, only show every nth point
+            const interval = Math.ceil(cumulativeData.length / 30);
+            return i % interval === 0 ? 5 : 0;
+          }
+          
+          return 5;
+        });
+      
+      // Re-add event listeners after the transition
+      clippedGroup.selectAll<SVGCircleElement, CumulativeTradeData>('.line-point')
         .on('mouseover', function(event, d: CumulativeTradeData) {
           d3.select(this)
             .transition()
             .duration(200)
-            .attr('r', 7);
+            .attr('r', 8)
+            .attr('stroke-width', 3);
             
+          // Enhanced tooltip with more information
           tooltip
             .style('visibility', 'visible')
             .html(`
-              <div>
-                <div style="font-weight: 600; margin-bottom: 4px;">${d.period}</div>
-                <div>Cumulative Trade Size: ${d.cumulativeTotal.toLocaleString()}</div>
+              <div style="min-width: 180px;">
+                <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #10B981;">${d.period}</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>Cumulative:</span>
+                  <span style="font-weight: 600;">${d.cumulativeTotal.toLocaleString()}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>Period Size:</span>
+                  <span style="font-weight: 600;">${d.totalTradeSize.toLocaleString()}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Avg Price:</span>
+                  <span style="font-weight: 600;">$${d.averagePrice.toFixed(2)}</span>
+                </div>
               </div>
             `);
         })
@@ -368,15 +501,54 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
           d3.select(this)
             .transition()
             .duration(200)
-            .attr('r', 5);
+            .attr('r', function(d, i) {
+              // Maintain the same sizing logic as in the initial rendering
+              if (i === 0 || i === cumulativeData.length - 1) return 6;
+              
+              if (i > 0 && i < cumulativeData.length - 1) {
+                const prev = cumulativeData[i-1].cumulativeTotal;
+                const curr = d.cumulativeTotal;
+                const next = cumulativeData[i+1].cumulativeTotal;
+                
+                if (curr > prev && curr > next) return 6;
+              }
+              
+              if (i > 0) {
+                const change = d.cumulativeTotal - cumulativeData[i-1].cumulativeTotal;
+                const percentChange = change / cumulativeData[i-1].cumulativeTotal;
+                if (percentChange > 0.1) return 6;
+              }
+              
+              if (cumulativeData.length > 50) {
+                const interval = Math.ceil(cumulativeData.length / 30);
+                return i % interval === 0 ? 5 : 0;
+              }
+              
+              return 5;
+            })
+            .attr('stroke-width', 2);
             
           tooltip.style('visibility', 'hidden');
         });
+        
+      // Add area under the line for better visual emphasis
+      const area = d3.area<CumulativeTradeData>()
+        .x(d => (x(d.period) as number) + x.bandwidth() / 2)
+        .y0(innerHeight)
+        .y1(d => yLine(d.cumulativeTotal))
+        .curve(d3.curveMonotoneX);
+        
+      clippedGroup.append('path')
+        .datum(cumulativeData)
+        .attr('class', 'cumulative-area')
+        .attr('fill', 'url(#line-gradient)')
+        .attr('fill-opacity', 0.1)
+        .attr('d', area);
     }
       
     // Add legend
     const legend = chartGroup.append('g')
-      .attr('transform', `translate(${innerWidth - 150}, 0)`);
+      .attr('transform', `translate(${innerWidth + 20}, 0)`);
       
     // Bar legend
     legend.append('rect')
@@ -396,25 +568,30 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
       
     // Line legend (only if showing cumulative line)
     if (showCumulativeLine) {
-      legend.append('line')
-        .attr('x1', 0)
-        .attr('y1', 30)
-        .attr('x2', 15)
-        .attr('y2', 30)
-        .attr('stroke', '#10B981')
-        .attr('stroke-width', 3);
+      // Enhanced legend for cumulative line
+      const lineLegend = legend.append('g')
+        .attr('transform', 'translate(0, 30)');
         
-      legend.append('circle')
+      lineLegend.append('line')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', 15)
+        .attr('y2', 0)
+        .attr('stroke', 'url(#line-gradient)')
+        .attr('stroke-width', 3)
+        .attr('stroke-linecap', 'round');
+        
+      lineLegend.append('circle')
         .attr('cx', 7.5)
-        .attr('cy', 30)
+        .attr('cy', 0)
         .attr('r', 4)
         .attr('fill', '#10B981')
         .attr('stroke', '#064E3B')
         .attr('stroke-width', 1);
         
-      legend.append('text')
+      lineLegend.append('text')
         .attr('x', 20)
-        .attr('y', 34)
+        .attr('y', 4)
         .text('Cumulative Total')
         .style('font-size', '12px')
         .style('fill', '#9CA3AF');
@@ -424,7 +601,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
     return () => {
       tooltip.remove();
     };
-  }, [data, width, height, showCumulativeLine]);
+  }, [data, chartWidth, height, showCumulativeLine]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -524,7 +701,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
       
       <svg 
         ref={svgRef} 
-        width={width} 
+        width={chartWidth} 
         height={height} 
         style={{ cursor: isZoomed ? 'move' : 'default' }}
       />
