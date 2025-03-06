@@ -95,17 +95,8 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         // Create new scales based on the zoom transform
         const newX = newTransform.rescaleX(x);
         
-        // Update the x-axis
-        xAxis.call(d3.axisBottom(newX));
-        
-        // Rotate x-axis labels
-        xAxis.selectAll('text')
-          .style('text-anchor', 'end')
-          .attr('dx', '-.8em')
-          .attr('dy', '.15em')
-          .attr('transform', 'rotate(-45)')
-          .style('font-size', '12px')
-          .style('fill', '#9CA3AF');
+        // Update the x-axis with dynamic tick display
+        updateXAxis(xAxis, newX, newTransform.k);
         
         // Update the bars
         clippedGroup.selectAll<SVGRectElement, CumulativeTradeData>('.bar')
@@ -140,21 +131,62 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         .call(zoom.transform, d3.zoomIdentity);
     });
 
+    // Helper function to update x-axis with dynamic tick display
+    const updateXAxis = (axis: d3.Selection<SVGGElement, unknown, null, undefined>, scale: d3.ScaleBand<string>, zoomLevel: number) => {
+      // Determine how many ticks to show based on data length and zoom level
+      const tickValues = getTickValues(data.map(d => d.period), zoomLevel);
+      
+      // Create a custom axis that only shows the selected ticks
+      const customAxis = d3.axisBottom(scale)
+        .tickValues(tickValues);
+      
+      // Update the axis
+      axis.call(customAxis);
+      
+      // Style the ticks
+      axis.selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '.15em')
+        .attr('transform', 'rotate(-45)')
+        .style('font-size', '12px')
+        .style('fill', '#9CA3AF');
+    };
+    
+    // Helper function to determine which ticks to show
+    const getTickValues = (allPeriods: string[], zoomLevel: number): string[] => {
+      const totalPeriods = allPeriods.length;
+      
+      // If we have a reasonable number of periods or we're zoomed in, show more ticks
+      if (totalPeriods <= 20 || zoomLevel > 2) {
+        return allPeriods;
+      }
+      
+      // For large datasets, show fewer ticks based on the total number
+      let interval: number;
+      if (totalPeriods > 300) {
+        interval = Math.ceil(totalPeriods / 12); // For yearly view, show ~12 ticks (monthly)
+      } else if (totalPeriods > 100) {
+        interval = Math.ceil(totalPeriods / 20); // For quarterly view, show ~20 ticks
+      } else if (totalPeriods > 50) {
+        interval = Math.ceil(totalPeriods / 25); // For monthly view, show ~25 ticks
+      } else {
+        interval = Math.ceil(totalPeriods / 30); // For weekly view, show ~30 ticks
+      }
+      
+      // Select ticks at regular intervals
+      return allPeriods.filter((_, i) => i % interval === 0);
+    };
+
     // Create axes
     const xAxis = chartGroup
       .append('g')
       .attr('class', 'x-axis')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x))
       .attr('color', '#9CA3AF');
-
-    xAxis.selectAll('text')
-      .style('text-anchor', 'end')
-      .attr('dx', '-.8em')
-      .attr('dy', '.15em')
-      .attr('transform', 'rotate(-45)')
-      .style('font-size', '12px')
-      .style('fill', '#9CA3AF');
+      
+    // Initialize x-axis with dynamic tick display
+    updateXAxis(xAxis, x, 1);
 
     const yAxis = chartGroup
       .append('g')
@@ -471,7 +503,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
       </div>
       
       {/* Zoom instructions */}
-      <div style={{
+      {/* <div style={{
         position: 'absolute',
         bottom: 10,
         left: 10,
@@ -488,7 +520,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         <div>• Scroll to zoom in/out</div>
         <div>• Drag to pan</div>
         <div>• Double-click to reset</div>
-      </div>
+      </div> */}
       
       <svg 
         ref={svgRef} 
