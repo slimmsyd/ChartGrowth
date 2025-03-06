@@ -4,135 +4,168 @@ import { AggregatedTradeData } from '../utils/aggregationUtils';
 
 interface BarChartProps {
   data: AggregatedTradeData[];
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
 }
 
-const BarChart: React.FC<BarChartProps> = ({ 
-  data, 
-  width = 800, 
-  height = 400 
-}) => {
+const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  
+
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
-    
+
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
-    
+
     // Set margins
     const margin = { top: 20, right: 30, bottom: 60, left: 80 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
-    
+
     // Create SVG
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .style('font-family', 'Inter, system-ui, sans-serif')
-      .style('background', '#f8f9fa')
-      .style('border-radius', '8px');
-    
-    // Create chart group
-    const g = svg.append('g')
+      .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
-    
-    // X scale
-    const x = d3.scaleBand()
+
+    // Create scales
+    const x = d3
+      .scaleBand()
       .domain(data.map(d => d.period))
       .range([0, innerWidth])
-      .padding(0.2);
-    
-    // Y scale
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.totalTradeSize) || 0])
-      .nice()
+      .padding(0.3);
+
+    const y = d3
+      .scaleLinear()
+      .domain([0, d3.max(data, d => d.totalTradeSize) as number * 1.1])
       .range([innerHeight, 0]);
-    
-    // Color scale
-    const color = d3.scaleLinear<string>()
-      .domain([0, d3.max(data, d => d.totalTradeSize) || 0])
-      .range(['#69b3a2', '#276955']);
-    
-    // Add X axis
-    g.append('g')
+
+    // Create axes
+    const xAxis = svg
+      .append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).tickFormat(d => {
-        // Truncate long period labels
-        const label = d.toString();
-        return label.length > 10 ? label.substring(0, 10) + '...' : label;
-      }))
-      .selectAll('text')
-      .attr('transform', 'rotate(-45)')
+      .call(d3.axisBottom(x))
+      .attr('color', '#9CA3AF');
+
+    xAxis.selectAll('text')
       .style('text-anchor', 'end')
-      .style('font-size', '12px');
-    
-    // Add Y axis
-    g.append('g')
-      .call(d3.axisLeft(y).ticks(5).tickFormat(d => d3.format(',.0f')(d as number)))
-      .style('font-size', '12px');
-    
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em')
+      .attr('transform', 'rotate(-45)')
+      .style('font-size', '12px')
+      .style('fill', '#9CA3AF');
+
+    const yAxis = svg
+      .append('g')
+      .call(d3.axisLeft(y).ticks(5).tickFormat(d => d3.format('~s')(d as number)))
+      .attr('color', '#9CA3AF');
+
+    yAxis.selectAll('text')
+      .style('font-size', '12px')
+      .style('fill', '#9CA3AF');
+
+    // Add grid lines
+    svg.append('g')
+      .attr('class', 'grid')
+      .call(
+        d3.axisLeft(y)
+          .ticks(5)
+          .tickSize(-innerWidth)
+          .tickFormat(() => '')
+      )
+      .attr('color', 'rgba(255, 255, 255, 0.05)');
+
     // Add Y axis label
-    g.append('text')
+    svg.append('text')
       .attr('transform', 'rotate(-90)')
-      .attr('y', -margin.left + 20)
+      .attr('y', -60)
       .attr('x', -innerHeight / 2)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '14px')
-      .style('fill', '#555')
-      .text('Total Trade Size');
-    
-    // Add bars
-    g.selectAll('.bar')
+      .attr('dy', '1em')
+      .style('text-anchor', 'middle')
+      .style('fill', '#9CA3AF')
+      .style('font-size', '13px')
+      .text('Trade Size');
+
+    // Add X axis label
+    svg.append('text')
+      .attr('transform', `translate(${innerWidth / 2}, ${innerHeight + 50})`)
+      .style('text-anchor', 'middle')
+      .style('fill', '#9CA3AF')
+      .style('font-size', '13px')
+      .text('Period');
+
+    // Create tooltip
+    const tooltip = d3.select('body')
+      .append('div')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', '#1F2937')
+      .style('color', '#E5E7EB')
+      .style('padding', '8px 12px')
+      .style('border-radius', '6px')
+      .style('font-size', '13px')
+      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)')
+      .style('border', '1px solid rgba(255, 255, 255, 0.1)')
+      .style('pointer-events', 'none')
+      .style('z-index', '10');
+
+    // Create bars
+    svg.selectAll('.bar')
       .data(data)
-      .join('rect')
+      .enter()
+      .append('rect')
       .attr('class', 'bar')
-      .attr('x', d => x(d.period) || 0)
-      .attr('y', d => y(d.totalTradeSize))
+      .attr('x', d => x(d.period) as number)
       .attr('width', x.bandwidth())
+      .attr('y', d => y(d.totalTradeSize))
       .attr('height', d => innerHeight - y(d.totalTradeSize))
-      .attr('fill', d => color(d.totalTradeSize))
+      .attr('fill', '#4F46E5')
       .attr('rx', 4)
-      .attr('ry', 4)
-      .style('opacity', 0.85)
-      .on('mouseover', function() {
-        d3.select(this).style('opacity', 1);
+      .attr('opacity', 0.8)
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
+          .attr('fill', '#6366F1');
+        
+        tooltip
+          .style('visibility', 'visible')
+          .html(`
+            <div>
+              <div style="font-weight: 600; margin-bottom: 4px;">${d.period}</div>
+              <div>Trade Size: ${d.totalTradeSize.toLocaleString()}</div>
+              <div>Trades: ${d.tradeCount.toLocaleString()}</div>
+              <div>Avg Price: $${d.averagePrice.toFixed(2)}</div>
+            </div>
+          `);
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('top', (event.pageY - 10) + 'px')
+          .style('left', (event.pageX + 10) + 'px');
       })
       .on('mouseout', function() {
-        d3.select(this).style('opacity', 0.85);
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.8)
+          .attr('fill', '#4F46E5');
+        
+        tooltip.style('visibility', 'hidden');
       });
-    
-    // Add tooltips
-    g.selectAll('.bar-value')
-      .data(data)
-      .join('text')
-      .attr('class', 'bar-value')
-      .attr('x', d => (x(d.period) || 0) + x.bandwidth() / 2)
-      .attr('y', d => y(d.totalTradeSize) - 5)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '10px')
-      .style('fill', '#333')
-      .text(d => d3.format(',.0f')(d.totalTradeSize));
-    
+
+    // Clean up tooltip on unmount
+    return () => {
+      tooltip.remove();
+    };
   }, [data, width, height]);
-  
+
   return (
-    <div className="barchart-container" style={{ 
-      background: 'white', 
-      borderRadius: '8px', 
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: '16px'
-    }}>
-      <h3 style={{ 
-        margin: '0 0 16px 0', 
-        fontSize: '18px', 
-        fontWeight: 600, 
-        color: '#333'
-      }}>
-        Trade Volume by Period
-      </h3>
-      <svg ref={svgRef} />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <svg ref={svgRef} width={width} height={height} />
     </div>
   );
 };

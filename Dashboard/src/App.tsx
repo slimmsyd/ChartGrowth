@@ -118,36 +118,39 @@ function App() {
 
   return (
     <div className="app-container" style={{ 
-      backgroundColor: '#f0f2f5', 
+      backgroundColor: '#0E1117', 
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'row',
       padding: '0',
-      fontFamily: 'Inter, system-ui, sans-serif'
+      fontFamily: 'Inter, system-ui, sans-serif',
+      color: '#E5E7EB'
     }}>
       {/* Left Sidebar Controls */}
       <div className='sidebar-controls' style={{
-        width: '280px',
-        backgroundColor: '#111827',
-        color: '#fff',
-        padding: '24px 20px',
+        width: '260px',
+        backgroundColor: '#171B26',
+        color: '#E5E7EB',
+        padding: '20px 16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px',
+        gap: '20px',
         height: '100vh',
         position: 'sticky',
         top: 0,
-        boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+        borderRight: '1px solid rgba(255,255,255,0.05)'
       }}>
         <div style={{ 
-          fontSize: '22px', 
+          fontSize: '18px', 
           fontWeight: 600, 
-          marginBottom: '12px',
+          marginBottom: '8px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          color: '#E5E7EB',
+          padding: '0 4px'
         }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 13.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V13.2M3 13.2V6.2C3 5.07989 3 4.51984 3.21799 4.09202C3.40973 3.71569 3.71569 3.40973 4.09202 3.21799C4.51984 3 5.07989 3 6.2 3H17.8C18.9201 3 19.4802 3 19.908 3.21799C20.2843 3.40973 20.5903 3.71569 20.782 4.09202C21 4.51984 21 5.07989 21 6.2V13.2M3 13.2H21" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M7 17L7 15M12 17V13M17 17V11" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -157,8 +160,8 @@ function App() {
         <div className='control-group'>
           <label style={{ 
             display: 'block', 
-            marginBottom: '8px', 
-            fontSize: '14px', 
+            marginBottom: '6px', 
+            fontSize: '13px', 
             fontWeight: 500,
             color: '#9CA3AF'
           }}>
@@ -169,13 +172,14 @@ function App() {
             id="start" 
             name="trip-start"
             value={startDate}
+            className = "padding-left-10"
             onChange={(e) => setStartDate(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #374151',
-              borderRadius: '8px',
-              fontSize: '14px',
+              padding: '8px 10px',
+              border: '1px solid #2D3748',
+              borderRadius: '6px',
+              fontSize: '13px',
               backgroundColor: '#1F2937',
               color: '#E5E7EB',
               outline: 'none'
@@ -186,8 +190,8 @@ function App() {
         <div className='control-group'>
           <label style={{ 
             display: 'block', 
-            marginBottom: '8px', 
-            fontSize: '14px', 
+            marginBottom: '6px', 
+            fontSize: '13px', 
             fontWeight: 500,
             color: '#9CA3AF'
           }}>
@@ -201,10 +205,10 @@ function App() {
             onChange={(e) => setMinSize(Number(e.target.value))}
             style={{
               width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #374151',
-              borderRadius: '8px',
-              fontSize: '14px',
+              padding: '8px 10px',
+              border: '1px solid #2D3748',
+              borderRadius: '6px',
+              fontSize: '13px',
               backgroundColor: '#1F2937',
               color: '#E5E7EB',
               outline: 'none'
@@ -215,45 +219,47 @@ function App() {
         <div className='control-group'>
           <label style={{ 
             display: 'block', 
-            marginBottom: '8px', 
-            fontSize: '14px', 
+            marginBottom: '6px', 
+            fontSize: '13px', 
             fontWeight: 500,
             color: '#9CA3AF'
           }}>
             Aggregation
           </label>
-          <select 
-            name="aggregation" 
-            id="aggregation"
-            value={aggregation}
-            onChange={(e) => setAggregation(e.target.value as Aggregation)}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #374151',
-              borderRadius: '8px',
-              fontSize: '14px',
-              backgroundColor: '#1F2937',
-              color: '#E5E7EB',
-              outline: 'none',
-              appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 12px center'
-            }}
-          >
-            <option value="Daily">Daily (1 Day)</option>
-            <option value="Weekly">Weekly (7 Days)</option>
-            <option value="Monthly">Monthly (30 Days)</option>
-            <option value="Quarterly">Quarterly (91 Days)</option>
-          </select>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '6px'
+          }}>
+            {(['Daily', 'Weekly', 'Monthly', 'Quarterly'] as const).map((agg) => (
+              <button
+                key={agg}
+                onClick={() => setAggregation(agg)}
+                
+                style={{
+                  padding: '6px 8px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: aggregation === agg ? 600 : 400,
+                  backgroundColor: aggregation === agg ? '#10B981' : '#2D3748',
+                  color: aggregation === agg ? '#111827' : '#E5E7EB',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                }}
+              >
+                {agg}
+              </button>
+            ))}
+          </div>
         </div>
         
         <div className='control-group'>
           <label style={{ 
             display: 'block', 
-            marginBottom: '8px', 
-            fontSize: '14px', 
+            marginBottom: '6px', 
+            fontSize: '13px', 
             fontWeight: 500,
             color: '#9CA3AF'
           }}>
@@ -261,19 +267,19 @@ function App() {
           </label>
           <div style={{ 
             display: 'flex', 
-            gap: '8px', 
+            gap: '6px', 
             width: '100%' 
           }}>
             <button 
               onClick={() => setChart('BarChart')}
               style={{
                 flex: 1,
-                padding: '10px',
+                padding: '8px 10px',
                 border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
+                borderRadius: '6px',
+                fontSize: '13px',
                 fontWeight: chart === 'BarChart' ? 600 : 400,
-                backgroundColor: chart === 'BarChart' ? '#10B981' : '#374151',
+                backgroundColor: chart === 'BarChart' ? '#10B981' : '#2D3748',
                 color: chart === 'BarChart' ? '#111827' : '#E5E7EB',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -283,7 +289,7 @@ function App() {
                 gap: '6px'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 20V10M12 20V4M18 20V14" stroke={chart === 'BarChart' ? '#111827' : '#E5E7EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Bar
@@ -292,12 +298,12 @@ function App() {
               onClick={() => setChart('TreeMap')}
               style={{
                 flex: 1,
-                padding: '10px',
+                padding: '8px 10px',
                 border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
+                borderRadius: '6px',
+                fontSize: '13px',
                 fontWeight: chart === 'TreeMap' ? 600 : 400,
-                backgroundColor: chart === 'TreeMap' ? '#10B981' : '#374151',
+                backgroundColor: chart === 'TreeMap' ? '#10B981' : '#2D3748',
                 color: chart === 'TreeMap' ? '#111827' : '#E5E7EB',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -307,7 +313,7 @@ function App() {
                 gap: '6px'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5Z" stroke={chart === 'TreeMap' ? '#111827' : '#E5E7EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M3 9H21M3 15H21M9 21V9M15 21V9" stroke={chart === 'TreeMap' ? '#111827' : '#E5E7EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -320,17 +326,17 @@ function App() {
           onClick={handleFetchTrades} 
           disabled={isLoading}
           style={{
-            padding: '12px 24px',
+            padding: '10px',
             backgroundColor: '#10B981',
             color: '#111827',
             border: 'none',
-            borderRadius: '8px',
-            fontSize: '15px',
+            borderRadius: '6px',
+            fontSize: '14px',
             fontWeight: 600,
             cursor: isLoading ? 'not-allowed' : 'pointer',
             opacity: isLoading ? 0.7 : 1,
             transition: 'all 0.2s ease',
-            marginTop: '12px',
+            marginTop: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -339,25 +345,29 @@ function App() {
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2V6M12 18V22M6 12H2M22 12H18M19.0784 19.0784L16.25 16.25M19.0784 4.92157L16.25 7.75M4.92157 19.0784L7.75 16.25M4.92157 4.92157L7.75 7.75" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2V6M12 18V22M6 12H2M22 12H18M19.0784 19.0784L16.25 16.25M19.0784 4.92157L16.25 7.75M4.92157 19.0784L7.75 16.25M4.92157 4.92157L7.75 7.75" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Loading...
             </>
           ) : (
             <>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 8V16M8 12H16" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 8V16M8 12H16" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Fetch Trades
             </>
           )}
         </button>
+        
+        <div style={{ marginTop: 'auto', padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '12px', color: '#9CA3AF', textAlign: 'center' }}>
+          Trade Analytics Dashboard v1.0
+        </div>
       </div>
       
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '20px 30px', overflow: 'auto' }}>
+      <div style={{ flex: 1, padding: '16px 20px', overflow: 'auto' }}>
         <DashboardUI 
           trades={trades}
           aggregatedTrades={aggregatedTrades}

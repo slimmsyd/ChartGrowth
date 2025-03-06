@@ -4,135 +4,173 @@ import { AggregatedTradeData } from '../utils/aggregationUtils';
 
 interface TreeMapChartProps {
   data: AggregatedTradeData[];
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
 }
 
-interface TreeMapData {
-  name: string;
-  value: number;
-  formattedValue: string;
-  color?: string;
-}
-
-const TreeMapChart: React.FC<TreeMapChartProps> = ({ 
-  data, 
-  width = 800, 
-  height = 400 
-}) => {
+const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  
-  // Color scale for different symbols
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-  
+
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
-    
+
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
-    
-    // Transform data for treemap
-    const treeMapData: TreeMapData[] = [];
-    
-    data.forEach(period => {
-      Object.entries(period.symbols).forEach(([symbol, count]) => {
-        // Find if this symbol already exists in our data
-        const existingSymbol = treeMapData.find(item => item.name === symbol);
-        
-        if (existingSymbol) {
-          existingSymbol.value += count;
-        } else {
-          treeMapData.push({
-            name: symbol,
-            value: count,
-            formattedValue: `${symbol}: ${count} trades`,
-            color: colorScale(symbol) as string
-          });
-        }
-      });
-    });
-    
-    // Sort by value (descending)
-    treeMapData.sort((a, b) => b.value - a.value);
-    
-    // Create hierarchy
-    const root = d3.hierarchy({ children: treeMapData })
-      .sum(d => (d as any).value)
-      .sort((a, b) => b.value! - a.value!);
-    
-    // Create treemap layout
-    const treemap = d3.treemap<TreeMapData>()
-      .size([width, height])
-      .padding(2)
-      .round(true);
-    
-    // Apply layout
-    treemap(root as unknown as d3.HierarchyNode<TreeMapData>);
-    
+
+    // Set margins
+    const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+
     // Create SVG
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .style('font-family', 'Inter, system-ui, sans-serif')
-      .style('background', '#f8f9fa')
-      .style('border-radius', '8px');
-    
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Prepare data for treemap
+    const treeMapData = data.map(item => {
+      // Extract symbol counts from the symbols object
+      const symbolEntries = Object.entries(item.symbols);
+      
+      // Create an array of symbol data objects
+      return symbolEntries.map(([symbol, count]) => ({
+        symbol,
+        count,
+        period: item.period,
+        totalSize: item.totalTradeSize / symbolEntries.length, // Approximate distribution
+        totalPrice: item.averagePrice * count
+      }));
+    }).flat();
+
+    // Transform data for treemap
+    const root = d3.hierarchy({ children: treeMapData })
+      .sum(d => (d as any).totalSize)
+      .sort((a, b) => (b.value || 0) - (a.value || 0));
+
+    // Create treemap layout
+    const treemap = d3.treemap<any>()
+      .size([innerWidth, innerHeight])
+      .paddingOuter(4)
+      .paddingInner(2)
+      .round(true);
+
+    treemap(root);
+
+    // Create color scale
+    const colorScale = d3.scaleOrdinal<string>()
+      .domain(treeMapData.map(d => d.symbol))
+      .range([
+        '#4F46E5', '#10B981', '#EC4899', '#F59E0B', '#6366F1', 
+        '#8B5CF6', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6',
+        '#6366F1', '#8B5CF6', '#A855F7', '#D946EF', '#EC4899'
+      ]);
+
+    // Create tooltip
+    const tooltip = d3.select('body')
+      .append('div')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', '#1F2937')
+      .style('color', '#E5E7EB')
+      .style('padding', '8px 12px')
+      .style('border-radius', '6px')
+      .style('font-size', '13px')
+      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)')
+      .style('border', '1px solid rgba(255, 255, 255, 0.1)')
+      .style('pointer-events', 'none')
+      .style('z-index', '10');
+
     // Create cells
-    const cell = svg.selectAll('g')
+    const cell = svg
+      .selectAll('g')
       .data(root.leaves())
-      .join('g')
-      .attr('transform', d => `translate(${d.x0},${d.y0 })`);
-    
+      .enter()
+      .append('g')
+      .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
     // Add rectangles
-    cell.append('rect')
+    cell
+      .append('rect')
       .attr('width', d => d.x1 - d.x0)
       .attr('height', d => d.y1 - d.y0)
-      .attr('fill', d => (d.data as any).color || '#69b3a2')
-      .attr('stroke', '#fff')
+      .attr('fill', d => colorScale((d.data as any).symbol))
+      .attr('opacity', 0.85)
       .attr('rx', 4)
-      .attr('ry', 4)
-      .style('opacity', 0.85);
-    
+      .style('stroke', 'rgba(255, 255, 255, 0.1)')
+      .style('stroke-width', 1)
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 1);
+        
+        const data = d.data as any;
+        tooltip
+          .style('visibility', 'visible')
+          .html(`
+            <div>
+              <div style="font-weight: 600; margin-bottom: 4px;">${data.symbol}</div>
+              <div>Trade Size: ${data.totalSize.toLocaleString()}</div>
+              <div>Trades: ${data.count.toLocaleString()}</div>
+              <div>Period: ${data.period}</div>
+            </div>
+          `);
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('top', (event.pageY - 10) + 'px')
+          .style('left', (event.pageX + 10) + 'px');
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.85);
+        
+        tooltip.style('visibility', 'hidden');
+      });
+
     // Add text labels
-    cell.append('text')
-      .attr('x', 5)
-      .attr('y', 15)
-      .attr('fill', '#fff')
-      .attr('font-weight', 'bold')
-      .text(d => d.data.name)
+    cell
+      .append('text')
+      .attr('x', 4)
+      .attr('y', 14)
       .style('font-size', '12px')
-      .style('pointer-events', 'none');
-    
-    cell.append('text')
-      .attr('x', 5)
+      .style('font-weight', '500')
+      .style('fill', 'white')
+      .style('pointer-events', 'none')
+      .text(d => (d.data as any).symbol);
+
+    // Add size labels
+    cell
+      .append('text')
+      .attr('x', 4)
       .attr('y', 30)
-      .attr('fill', '#fff')
-      .text(d => `${d.value} trades`)
-      .style('font-size', '10px')
-      .style('pointer-events', 'none');
-    
-    // Add tooltips
-    cell.append('title')
-      .text(d => `${d.data.name}\nTrades: ${d.value}`);
-    
-  }, [data, width, height, colorScale]);
-  
+      .style('font-size', '11px')
+      .style('fill', 'rgba(255, 255, 255, 0.8)')
+      .style('pointer-events', 'none')
+      .text(d => {
+        const size = (d.data as any).totalSize;
+        if (size >= 1000000) {
+          return `${(size / 1000000).toFixed(1)}M`;
+        } else if (size >= 1000) {
+          return `${(size / 1000).toFixed(1)}K`;
+        }
+        return size;
+      });
+
+    // Clean up tooltip on unmount
+    return () => {
+      tooltip.remove();
+    };
+  }, [data, width, height]);
+
   return (
-    <div className="treemap-container" style={{ 
-      background: 'white', 
-      borderRadius: '8px', 
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: '16px'
-    }}>
-      <h3 style={{ 
-        margin: '0 0 16px 0', 
-        fontSize: '18px', 
-        fontWeight: 600, 
-        color: '#333'
-      }}>
-        Trade Volume by Symbol
-      </h3>
-      <svg ref={svgRef} />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <svg ref={svgRef} width={width} height={height} />
     </div>
   );
 };
