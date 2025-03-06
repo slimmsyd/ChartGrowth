@@ -108,8 +108,8 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
           .style('fill', '#9CA3AF');
         
         // Update the bars
-        clippedGroup.selectAll('.bar')
-          .attr('x', (d: CumulativeTradeData) => newX(d.period) as number)
+        clippedGroup.selectAll<SVGRectElement, CumulativeTradeData>('.bar')
+          .attr('x', (d) => newX(d.period) as number)
           .attr('width', newX.bandwidth());
         
         // Update the line if it exists
@@ -122,11 +122,11 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
           
           // Update the path
           clippedGroup.select('.cumulative-line')
-            .attr('d', newLine);
+            .attr('d', newLine as any);
           
           // Update the points
-          clippedGroup.selectAll('.line-point')
-            .attr('cx', (d: CumulativeTradeData) => (newX(d.period) as number) + newX.bandwidth() / 2);
+          clippedGroup.selectAll<SVGCircleElement, CumulativeTradeData>('.line-point')
+            .attr('cx', (d) => (newX(d.period) as number) + newX.bandwidth() / 2);
         }
       });
       
@@ -236,7 +236,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
       .style('z-index', '10');
 
     // Create bars
-    clippedGroup.selectAll('.bar')
+    clippedGroup.selectAll<SVGRectElement, CumulativeTradeData>('.bar')
       .data(cumulativeData)
       .enter()
       .append('rect')
@@ -300,13 +300,13 @@ const BarChart: React.FC<BarChartProps> = ({ data, width, height }) => {
         .attr('d', line);
         
       // Add line points
-      const points = clippedGroup.selectAll('.line-point')
+      const points = clippedGroup.selectAll<SVGCircleElement, CumulativeTradeData>('.line-point')
         .data(cumulativeData)
         .enter()
         .append('circle')
         .attr('class', 'line-point')
-        .attr('cx', (d: CumulativeTradeData) => (x(d.period) as number) + x.bandwidth() / 2)
-        .attr('cy', (d: CumulativeTradeData) => yLine(d.cumulativeTotal))
+        .attr('cx', (d) => (x(d.period) as number) + x.bandwidth() / 2)
+        .attr('cy', (d) => yLine(d.cumulativeTotal))
         .attr('r', 5)
         .attr('fill', '#10B981')
         .attr('stroke', '#064E3B')

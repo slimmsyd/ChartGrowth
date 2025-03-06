@@ -23,34 +23,34 @@ export default function ChatPopup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
 
-  // Service options for Preeminent Professional Services
+  // Service options for Adroit's trading platform
   const serviceOptions: ServiceOption[] = [
     {
-      id: "technical",
-      name: "Professional/Technical Services",
-      description: "Property management, real estate development, and industrial/commercial properties services."
+      id: "execution",
+      name: "Execution Management",
+      description: "Real-time market data and order execution across multiple venues."
     },
     {
-      id: "environmental",
-      name: "Commercial Cleaning/Environmental Services",
-      description: "Comprehensive cleaning solutions for commercial properties."
+      id: "analytics",
+      name: "Trading Analytics",
+      description: "Comprehensive analytics for better decision-making in fixed-income markets."
     },
     {
-      id: "staffing",
-      name: "Professional Events and Staffing",
-      description: "Temporary staffing for commercial and private/public events."
+      id: "risk",
+      name: "Risk Management",
+      description: "Advanced risk monitoring and compliance tools for traders."
     },
     {
-      id: "ev",
-      name: "EV Services",
-      description: "Turn-key services for commercial fleet and vehicle electrification."
+      id: "customization",
+      name: "Platform Customization",
+      description: "Open APIs and customizable features to fit your specific trading needs."
     }
   ];
 
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "👋 Hi! I'm the Preeminent Professional Services assistant. How can I help you today?",
+      content: "👋 Hi! I'm Adroit's trading platform assistant. I can help you learn about how our EMS transforms trading operations, especially in fixed-income markets. Would you like to know about how we save time, boost decision-making, simplify complexity, offer customization, or reduce risk?",
       timestamp: new Date(),
     }
   ]);
@@ -71,7 +71,7 @@ export default function ChatPopup() {
           userMessage,
           assistantMessage,
           timestamp: new Date().toISOString(),
-          source: 'Preeminent Professional Services Chat'
+          source: 'Adroit Trading Platform Chat'
         }),
       });
       
@@ -92,24 +92,11 @@ export default function ChatPopup() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Add initial messages
+  // Send initial message to webhook for tracking
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const initialMessage = "I can help you learn about our services, including Professional/Technical Services, Commercial Cleaning, Events and Staffing, and EV Services. What would you like to know more about?";
-      
-      setMessages(prev => [...prev, 
-        {
-          role: "assistant",
-          content: initialMessage,
-          timestamp: new Date()
-        }
-      ]);
-      
-      // Send initial conversation to webhook
-      sendToWebhook("", initialMessage);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Send the initial message to webhook without adding a duplicate message
+    const initialMessage = messages[0].content;
+    sendToWebhook("", initialMessage);
   }, []);
 
   // Format message text with proper styling
@@ -117,7 +104,44 @@ export default function ChatPopup() {
     return text
       .replace(/• ([^:]+):/g, '• <strong>$1</strong>:')
       .replace(/- ([^:]+):/g, '• <strong>$1</strong>:')
-      .replace(/(Professional\/Technical Services|Commercial Cleaning|Environmental Services|Events and Staffing|EV Services):/g, '<strong>$1</strong>:');
+      .replace(/(Execution Management|Trading Analytics|Risk Management|Platform Customization|Saves Time|Boosts Decision-Making|Simplifies Complexity|Customizable|Reduces Risk):/g, '<strong>$1</strong>:');
+  };
+
+  // Function to generate responses for common trading platform queries
+  const generateTradingResponse = (query: string): string | null => {
+    const lowerQuery = query.toLowerCase();
+    
+    // Time-saving benefits
+    if (lowerQuery.includes('save time') || lowerQuery.includes('time saving') || lowerQuery.includes('efficiency')) {
+      return "• <strong>Saves Time</strong>: Adroit's EMS consolidates market data, orders, and analytics into a single dashboard. Instead of switching between multiple screens or making calls for prices, traders can see everything in one place. This streamlined workflow allows traders to focus more on strategy and less on administrative tasks.";
+    }
+    
+    // Decision-making benefits
+    if (lowerQuery.includes('decision') || lowerQuery.includes('decisions') || lowerQuery.includes('decide')) {
+      return "• <strong>Boosts Decision-Making</strong>: Our platform provides real-time data from multiple sources, giving traders a comprehensive view of the market. This is similar to having a shopping tool that instantly compares prices across all stores. With this complete market picture, traders can identify better opportunities and act before they disappear.";
+    }
+    
+    // Complexity management
+    if (lowerQuery.includes('complex') || lowerQuery.includes('simplify') || lowerQuery.includes('complicated')) {
+      return "• <strong>Simplifies Complexity</strong>: Fixed-income assets, particularly OTC derivatives, can be extremely complex. Adroit's EMS manages all the intricate details—risk factors, regulatory requirements, execution logistics—allowing traders to focus on the big picture rather than getting bogged down in complexity.";
+    }
+    
+    // Customization capabilities
+    if (lowerQuery.includes('custom') || lowerQuery.includes('tailor') || lowerQuery.includes('api')) {
+      return "• <strong>Customizable</strong>: Our open APIs allow firms to customize the platform to their specific needs. Think of it like customizing a car with exactly the features you want—you can add specialized analytics, integrate with proprietary systems, or modify the interface to match your workflow.";
+    }
+    
+    // Risk management
+    if (lowerQuery.includes('risk') || lowerQuery.includes('compliance') || lowerQuery.includes('regulate')) {
+      return "• <strong>Reduces Risk</strong>: The system continuously monitors trading risks, such as overexposure to certain positions, and ensures compliance with regulatory requirements. This acts as a safety net that helps traders avoid potential pitfalls and maintain regulatory compliance.";
+    }
+    
+    // Overview of all benefits
+    if (lowerQuery.includes('overview') || lowerQuery.includes('all benefits') || lowerQuery.includes('summary')) {
+      return "Adroit's EMS transforms trading operations in several key ways:\n\n• <strong>Saves Time</strong>: Consolidates all trading tools in one dashboard.\n• <strong>Boosts Decision-Making</strong>: Provides comprehensive market data for better opportunities.\n• <strong>Simplifies Complexity</strong>: Manages intricate details of fixed-income assets.\n• <strong>Customizable</strong>: Offers open APIs for tailoring to specific needs.\n• <strong>Reduces Risk</strong>: Monitors trading risks and ensures regulatory compliance.";
+    }
+    
+    return null; // No specific match found, will use the API response
   };
 
   const handleSendMessage = async () => {
@@ -135,6 +159,24 @@ export default function ChatPopup() {
     setIsLoading(true);
 
     try {
+      // Check if we can generate a local response first
+      const localResponse = generateTradingResponse(userMessageText);
+      
+      if (localResponse) {
+        // Use locally generated response
+        const assistantMessage: Message = {
+          role: "assistant",
+          content: localResponse,
+          timestamp: new Date(),
+        };
+        
+        setMessages((prev) => [...prev, assistantMessage]);
+        sendToWebhook(userMessageText, localResponse);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If no local response, proceed with API call
       // Prepare conversation history for the API
       const conversationHistory = messages
         .filter(msg => msg.role !== "system") // Exclude system messages
@@ -202,7 +244,7 @@ export default function ChatPopup() {
   return (
     <>
       {/* Chat Button */}
-      <div className="fixed bottom-8 right-8 z-[100]">
+      <div className="fixed bottom-8 right-8 z-[9999]">
         <button 
           onClick={() => setIsOpen(true)}
           className="group flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#1E293B]/90 to-[#0F172A]/90 hover:from-[#1E293B] hover:to-[#0F172A] backdrop-blur-xl p-3.5 rounded-full transition-all duration-300 shadow-lg border border-[#94A3B8]/20"
@@ -242,6 +284,7 @@ export default function ChatPopup() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
             className="chat-container"
+            style={{ zIndex: 9999 }}
           >
             {/* Header */}
             <div className="chat-header">
@@ -253,10 +296,10 @@ export default function ChatPopup() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="chat-title">Financial Advisor</h3>
+                    <h3 className="chat-title">Adroit Trading Assistant</h3>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
-                      <p className="chat-subtitle">Investment Expert</p>
+                      <p className="chat-subtitle">EMS Expert</p>
                     </div>
                   </div>
                 </div>
@@ -298,7 +341,7 @@ export default function ChatPopup() {
                     >
                       {(index === 0 || messages[index - 1].role !== msg.role) && (
                         <span className="message-role-label">
-                          {msg.role === "user" ? "You" : "Financial Advisor"}
+                          {msg.role === "user" ? "You" : "Adroit Trading Assistant"}
                         </span>
                       )}
                       
@@ -323,7 +366,7 @@ export default function ChatPopup() {
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Schedule Consultation
+                          Schedule Trading Demo
                         </button>
                       )}
                     </div>
@@ -348,7 +391,7 @@ export default function ChatPopup() {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                      placeholder="Ask about our services..."
+                      placeholder="Ask about our trading platform..."
                       className="chat-input"
                       disabled={isLoading}
                     />

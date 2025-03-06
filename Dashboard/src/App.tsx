@@ -3,7 +3,6 @@ import './App.css'
 import { StockTradeData } from './models/StockTradeData'
 import { aggregateTrades, AggregatedTradeData, formatPeriodForDisplay } from './utils/aggregationUtils'
 import DashboardUI from './components/DashboardUI'
-import ChatPopup from './components/ChatPopup'
 
 type Aggregation = "Daily" | "Weekly" | "Monthly" | "Quarterly"
 type Chart = "BarChart" | "TreeMap"
@@ -76,6 +75,8 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   const [isMinSizeFocused, setIsMinSizeFocused] = useState(false)
+  const [paramsChanged, setParamsChanged] = useState(false)
+  const [lastFetchParams, setLastFetchParams] = useState({ timeRange: "1M", minSize: 0 })
 
   // Handle window resize for responsive design
   useEffect(() => {
@@ -131,7 +132,12 @@ function App() {
     }
     
     setStartDate(newStartDate.toISOString().split('T')[0]);
-  }, [timeRange]);
+    
+    // Check if timeRange has changed since last fetch
+    if (timeRange !== lastFetchParams.timeRange) {
+      setParamsChanged(true);
+    }
+  }, [timeRange, lastFetchParams.timeRange]);
 
   // Format min size for display (simple share count)
   const formatMinSize = (value: number): string => {
@@ -147,8 +153,21 @@ function App() {
 
   // Handle min size input change
   const handleMinSizeChange = (value: string) => {
+    const parsedValue = parseMinSize(value);
+    setMinSize(parsedValue);
     setMinSizeDisplay(value);
-    setMinSize(parseMinSize(value));
+    
+    // Check if minSize has changed since last fetch
+    if (parsedValue !== lastFetchParams.minSize) {
+      setParamsChanged(true);
+    }
+  };
+
+  // Handle time range change
+  const handleTimeRangeChange = (range: TimeRange) => {
+    setTimeRange(range);
+    
+    // Check if timeRange has changed since last fetch is handled in the useEffect
   };
 
   // Effect to reaggregate data when trades or aggregation type changes
@@ -156,7 +175,7 @@ function App() {
     if (trades.length > 0) {
       const newAggregatedTrades = aggregateTrades(trades, aggregation);
       setAggregatedTrades(newAggregatedTrades);
-      console.log(`Aggregated ${trades.length} trades into ${newAggregatedTrades.length} ${aggregation} periods`);
+      // console.log(`Aggregated ${trades.length} trades into ${newAggregatedTrades.length} ${aggregation} periods`);
     } else {
       setAggregatedTrades([]);
     }
@@ -169,11 +188,10 @@ function App() {
     try {
       // Convert the startDate string to a Date object and then to an ISO string
       const startTimestamp = new Date(startDate).toISOString();
-      console.log('Fetching trades with parameters:', { startTimestamp, minQuoteSize: minSize });
+      // console.log('Fetching trades with parameters:', { startTimestamp, minQuoteSize: minSize });
       
       const fetchedTrades = await fetchTrades(startTimestamp, minSize);
 
-      console.log("Logging the fetch Treades that we have", fetchedTrades)
       
       if (fetchedTrades.length === 0) {
         setError('No trades found for the specified criteria');
@@ -193,14 +211,14 @@ function App() {
         }
       }
 
-
-      console.log("Logging the fetched trades that we have", fetchedTrades)
-      console.log("Logging the trades that we have", trades)
     } catch (err) {
       setError('Failed to fetch trades');
       console.error(err);
     } finally {
       setIsLoading(false);
+      // Update last fetch parameters and reset paramsChanged flag
+      setLastFetchParams({ timeRange, minSize });
+      setParamsChanged(false);
     }
 
     // TODO #2 : After fetching trades, add any aggregation logic needed here to support the options below.
@@ -291,6 +309,7 @@ function App() {
             }}>
               Time Range
               <div 
+              
                 title="Select a predefined time range or choose 'Custom' for a specific date"
                 style={{
                   display: 'inline-flex',
@@ -322,7 +341,7 @@ function App() {
                 {(['1D', '1W', '1M', '3M', '6M', '1Y', 'YTD', 'Custom'] as const).map((range) => (
                   <button
                     key={range}
-                    onClick={() => setTimeRange(range)}
+                    onClick={() => handleTimeRangeChange(range)}
                     title={
                       range === '1D' ? 'Last 24 hours' :
                       range === '1W' ? 'Last 7 days' :
@@ -577,8 +596,7 @@ function App() {
                       value={minSize}
                       onChange={(e) => {
                         const newValue = Number(e.target.value);
-                        setMinSize(newValue);
-                        setMinSizeDisplay(formatMinSize(newValue));
+                        handleMinSizeChange(formatMinSize(newValue));
                       }}
                       style={{
                         position: 'absolute',
@@ -837,7 +855,7 @@ function App() {
                   <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M12 8V16M8 12H16" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Fetch Trades
+                {paramsChanged ? 'Refresh Trades' : 'Fetch Trades'}
               </>
             )}
           </button>

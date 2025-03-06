@@ -8,6 +8,11 @@ interface TreeMapChartProps {
   width: number;
   height: number;
   rawTrades?: StockTradeData[]; // Optional raw trades data
+  aggregation: 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly';
+  minSize: number;
+  maxSize: number;
+  minPrice: number;
+  
 }
 
 // Define the TreeMapNode type to fix TypeScript errors
@@ -16,6 +21,16 @@ interface TreeMapNode extends d3.HierarchyNode<any> {
   y0: number;
   x1: number;
   y1: number;
+}
+
+// Define the TreeMapData interface
+interface TreeMapData {
+  symbol: string;
+  count: number;
+  period: string;
+  totalSize: number;
+  totalPrice: number;
+  children?: TreeMapData[];  // Make children optional
 }
 
 const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTrades }) => {
@@ -81,8 +96,11 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
     }).flat();
 
     // Transform data for treemap
-    const root = d3.hierarchy({ children: treeMapData })
-      .sum(d => d.totalSize)
+    const root = d3.hierarchy<{children: TreeMapData[]}>({ children: treeMapData })
+      .sum(d => {
+        // Check if this is a leaf node with totalSize property
+        return 'symbol' in d ? (d as unknown as TreeMapData).totalSize : 0;
+      })
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
     // Create treemap layout
@@ -140,20 +158,22 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
       .append('rect')
       .attr('width', d => (d as TreeMapNode).x1 - (d as TreeMapNode).x0)
       .attr('height', d => (d as TreeMapNode).y1 - (d as TreeMapNode).y0)
-      .attr('fill', d => colorScale(d.data.symbol))
+      .attr('fill', d => {
+        // Ensure we're accessing the symbol property safely
+        const nodeData = d.data as TreeMapData;
+        return colorScale(nodeData.symbol);
+      })
       .attr('opacity', 0.85)
       .attr('rx', 4)
       .style('stroke', 'rgba(255, 255, 255, 0.1)')
       .style('stroke-width', 1)
       .on('mouseover', function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(200)
-          .attr('opacity', 1);
+        // First cast to unknown, then to the correct type
+        const node = d as unknown as d3.HierarchyNode<TreeMapData>;
+        const data = node.data;
         
-        const data = d.data;
         tooltip
-          .style('visibility', 'visible')
+          .style('opacity', 1)
           .html(`
             <div>
               <div style="font-weight: 600; margin-bottom: 4px;">${data.symbol}</div>
@@ -186,7 +206,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
       .style('font-weight', '500')
       .style('fill', 'white')
       .style('pointer-events', 'none')
-      .text(d => d.data.symbol);
+      .text(d => (d.data as TreeMapData).symbol);
 
     // Add size labels
     cell
@@ -197,7 +217,7 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
       .style('fill', 'rgba(255, 255, 255, 0.8)')
       .style('pointer-events', 'none')
       .text(d => {
-        const size = d.data.totalSize;
+        const size = (d.data as TreeMapData).totalSize;
         if (size >= 1000000) {
           return `${(size / 1000000).toFixed(1)}M`;
         } else if (size >= 1000) {
