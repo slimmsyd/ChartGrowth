@@ -30,15 +30,22 @@ const fetchTrades = async (startTimestamp: string, minQuoteSize: number): Promis
     
     // Parse the JSON response
     const data = await response.json();
+    console.log("Logging the data that we have", data)
     
     // Validate that the data matches the StockTradeData interface
-    const validatedData: StockTradeData[] = data.map((item: any) => ({
-      id: item.id,
-      timeStamp: item.timeStamp,
-      tradeSize: item.tradeSize,
-      price: item.price,
-      symbol: item.symbol
-    }));
+    const validatedData: StockTradeData[] = data.map((item: any) => {
+      // Log the raw item to see the actual field names
+      console.log("Raw API item:", item);
+      
+      return {
+        id: item.id,
+        timeStamp: item.timestamp || item.Timestamp || item.timeStamp, // Try different casings
+        tradeSize: item.tradeSize,
+        price: item.price,
+        symbol: item.symbol
+      };
+    });
+
     
     console.log(`Fetched ${validatedData.length} trades successfully`);
     
@@ -85,6 +92,8 @@ function App() {
       console.log('Fetching trades with parameters:', { startTimestamp, minQuoteSize: minSize });
       
       const fetchedTrades = await fetchTrades(startTimestamp, minSize);
+
+      console.log("Logging the fetch Treades that we have", fetchedTrades)
       
       if (fetchedTrades.length === 0) {
         setError('No trades found for the specified criteria');
@@ -103,6 +112,10 @@ function App() {
           });
         }
       }
+
+
+      console.log("Logging the fetched trades that we have", fetchedTrades)
+      console.log("Logging the trades that we have", trades)
     } catch (err) {
       setError('Failed to fetch trades');
       console.error(err);

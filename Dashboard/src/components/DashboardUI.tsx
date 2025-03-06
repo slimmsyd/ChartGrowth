@@ -347,7 +347,12 @@ const DashboardUI: React.FC<DashboardUIProps> = ({
                 {chart === 'BarChart' ? (
                   <BarChart data={aggregatedTrades} width={1150} height={500} />
                 ) : (
-                  <TreeMapChart data={aggregatedTrades} width={1150} height={500} />
+                  <TreeMapChart 
+                    data={aggregatedTrades} 
+                    width={1150} 
+                    height={500} 
+                    rawTrades={trades} 
+                  />
                 )}
               </div>
             )}
