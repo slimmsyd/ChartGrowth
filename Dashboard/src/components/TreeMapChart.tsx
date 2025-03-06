@@ -71,6 +71,18 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
+    // Add drop shadow filter for hover effect
+    const defs = svg.append('defs');
+    defs.append('filter')
+      .attr('id', 'drop-shadow')
+      .attr('height', '130%')
+      .append('feDropShadow')
+      .attr('flood-color', 'rgba(255, 255, 255, 0.3)')
+      .attr('flood-opacity', 0.3)
+      .attr('dx', 0)
+      .attr('dy', 0)
+      .attr('stdDeviation', 4);
+
     // Use quarterly aggregation regardless of what's passed in
     let quarterlyData = data;
     
@@ -140,17 +152,20 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
     // Create tooltip
     const tooltip = d3.select('body')
       .append('div')
+      .attr('class', 'treemap-tooltip')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
+      .style('opacity', 0)
       .style('background-color', '#1F2937')
       .style('color', '#E5E7EB')
-      .style('padding', '8px 12px')
-      .style('border-radius', '6px')
+      .style('padding', '12px 16px')
+      .style('border-radius', '8px')
       .style('font-size', '13px')
-      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)')
+      .style('box-shadow', '0 6px 16px rgba(0, 0, 0, 0.4)')
       .style('border', '1px solid rgba(255, 255, 255, 0.1)')
       .style('pointer-events', 'none')
-      .style('z-index', '10');
+      .style('z-index', '10')
+      .style('max-width', '280px');
 
     // Add a title indicating this is quarterly data
     svg.append('text')
@@ -183,24 +198,77 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
       .attr('rx', 4)
       .style('stroke', 'rgba(255, 255, 255, 0.1)')
       .style('stroke-width', 1)
+      .style('cursor', 'pointer')
+      .style('transition', 'all 0.2s ease-in-out')
       .on('mouseover', function(event, d) {
         // First cast to unknown, then to the correct type
         const node = d as unknown as d3.HierarchyNode<TreeMapData>;
         const data = node.data;
         
+        // Highlight the hovered rectangle
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
+          .style('stroke', 'rgba(255, 255, 255, 0.3)')
+          .style('stroke-width', 2)
+          .attr('filter', 'url(#drop-shadow)')
+          .attr('transform', 'scale(1.02)');
+        
+        // Calculate percentage of total for this period
+        const periodTotal = quarterlyData.find(q => q.period === data.period)?.totalTradeSize || 0;
+        const percentage = periodTotal > 0 ? ((data.totalSize / periodTotal) * 100).toFixed(1) : '0';
+        
+        // Calculate average trade size
+        const avgTradeSize = data.count > 0 ? (data.totalSize / data.count).toFixed(0) : '0';
+        
+        // Format the period for better readability
+        const formattedPeriod = data.period.replace('Q', ' Quarter ');
+        
+        // Set the tooltip content first
         tooltip
-          .style('opacity', 1)
+          .style('visibility', 'visible')
           .html(`
             <div>
-              <div style="font-weight: 600; margin-bottom: 4px;">${data.symbol}</div>
-              <div>Trade Size: ${data.totalSize.toLocaleString()}</div>
-              <div>Trades: ${data.count.toLocaleString()}</div>
-              <div>Period: ${data.period}</div>
+              <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px; color: ${colorScale(data.symbol)}; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 6px;">
+                ${data.symbol}
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #9CA3AF;">Period:</span>
+                <span style="font-weight: 500;">${formattedPeriod}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #9CA3AF;">Total Volume:</span>
+                <span style="font-weight: 500;">${data.totalSize.toLocaleString()}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #9CA3AF;">% of Period:</span>
+                <span style="font-weight: 500;">${percentage}%</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #9CA3AF;">Trade Count:</span>
+                <span style="font-weight: 500;">${data.count.toLocaleString()}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #9CA3AF;">Avg Trade Size:</span>
+                <span style="font-weight: 500;">${avgTradeSize}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #9CA3AF;">Avg Price:</span>
+                <span style="font-weight: 500; color: #10B981;">$${(data.totalPrice / data.count).toFixed(2)}</span>
+              </div>
             </div>
           `);
-      })
-      .on('mousemove', function(event) {
+          
+        // Then animate the opacity
         tooltip
+          .style('opacity', 1)
           .style('top', (event.pageY - 10) + 'px')
           .style('left', (event.pageX + 10) + 'px');
       })
@@ -208,9 +276,21 @@ const TreeMapChart: React.FC<TreeMapChartProps> = ({ data, width, height, rawTra
         d3.select(this)
           .transition()
           .duration(200)
-          .attr('opacity', 0.85);
+          .attr('opacity', 0.85)
+          .style('stroke', 'rgba(255, 255, 255, 0.1)')
+          .style('stroke-width', 1)
+          .attr('filter', null)
+          .attr('transform', null);
         
-        tooltip.style('visibility', 'hidden');
+        // Hide tooltip immediately
+        tooltip
+          .style('opacity', 0)
+          .style('visibility', 'hidden');
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('top', (event.pageY - 10) + 'px')
+          .style('left', (event.pageX + 10) + 'px');
       });
 
     // Add text labels
