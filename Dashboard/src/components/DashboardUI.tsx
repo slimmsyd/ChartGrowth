@@ -3,6 +3,7 @@ import { StockTradeData } from '../models/StockTradeData';
 import { AggregatedTradeData } from '../utils/aggregationUtils';
 import BarChart from './BarChart';
 import TreeMapChart from './TreeMapChart';
+import ChatPopup from './ChatPopup';
 
 interface DashboardUIProps {
   trades: StockTradeData[];
@@ -41,6 +42,9 @@ const DashboardUI: React.FC<DashboardUIProps> = ({
   
   return (
     <div className="dashboard-container">
+
+<ChatPopup />
+
       {/* Header */}
       <div className="dashboard-header" style={{
         display: 'flex',

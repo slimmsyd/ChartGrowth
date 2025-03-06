@@ -3,6 +3,7 @@ import './App.css'
 import { StockTradeData } from './models/StockTradeData'
 import { aggregateTrades, AggregatedTradeData, formatPeriodForDisplay } from './utils/aggregationUtils'
 import DashboardUI from './components/DashboardUI'
+import ChatPopup from './components/ChatPopup'
 
 type Aggregation = "Daily" | "Weekly" | "Monthly" | "Quarterly"
 type Chart = "BarChart" | "TreeMap"
@@ -153,6 +154,35 @@ function App() {
         top: 0,
         borderRight: '1px solid rgba(255,255,255,0.05)'
       }}>
+
+        <div style={{
+          marginBottom: '16px'
+        }}>
+          <button 
+            onClick={() => window.location.href = '/account'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 12px',
+              backgroundColor: '#1F2937',
+              color: '#E5E7EB',
+              border: '1px solid #374151',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Back to Account
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#E5E7EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
         <div style={{ 
           fontSize: '18px', 
           fontWeight: 600, 
